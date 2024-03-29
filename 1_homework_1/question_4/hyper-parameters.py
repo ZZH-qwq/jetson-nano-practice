@@ -41,11 +41,14 @@ def train(model: nn.Module,
           num_epochs,
           device,
           train_loader,
+          verify_loader,
           val_loader=None):
     # model setting
     model.train()
     model.to(device=device)
     loss_list = []
+    variance_list = []
+    mean_list = []
     # train loop
     for epoch_idx in range(num_epochs):
         model.train()
@@ -69,21 +72,36 @@ def train(model: nn.Module,
             total += 1
 
             loss_list.append(loss.item())
+            
+            # calculate variance of loss every 1/16 of the training process
+            if total % (len(train_loader) // 16) == 10 and len(variance_list) < 20:
+                its = 0
+                varify_list = []
+                for inputs, labels in tqdm(verify_loader):
+                    inputs, labels = inputs.to(device), labels.to(device)
+                    outputs = model(inputs)
+                    loss = criterion(outputs, labels)
+                    varify_list.append(loss.item())
+                    its += 1
+                    if (its >= 50):
+                        loss_var = torch.var(torch.tensor(varify_list))
+                        loss_mean = torch.mean(torch.tensor(varify_list))
+                        variance_list.append(loss_var)
+                        mean_list.append(loss_mean)
+                        print("LossVar {0:.6f}, LostMean {1:.6f}".format(loss_var, loss_mean))
+                        break
 
             # exit()
 
         # #############################
         # TODO: calculate mean and variance of loss here!!!!
         # #############################
-        loss_mean = torch.mean(torch.tensor(loss_list))
-        loss_variance = torch.var(torch.tensor(loss_list))
-        print("Mean Loss: {:.6f}, Variance Loss: {:.6f}".format(loss_mean, loss_variance))
         running_loss /= total
         running_acc /= total
-        testing_acc = test(model,device,val_loader).item()
+        testing_acc = test(model,device,val_loader)
         print("Epoch {0:d}: TrainLoss {1:.6f}, TrainAcc {2:.4f}, TestAcc {3:.4f}".format(
             epoch_idx, running_loss, running_acc, testing_acc))
-    return loss_list
+    return loss_list, variance_list, mean_list
 
 
 def test(model:nn.Module,
@@ -92,13 +110,20 @@ def test(model:nn.Module,
     model.eval()
     model.to(device=device)
     testing_acc = total = 0
+    loss_list = []
     with torch.no_grad():
         for inputs, labels in tqdm(test_loader):
             inputs, labels = inputs.to(device), labels.to(device)
             outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss_list.append(loss.item())
             testing_acc += calc_acc(outputs, labels)
             total += 1
-    return testing_acc / total
+        # calculate mean and variance of loss
+        lost_var = torch.var(torch.tensor(loss_list))
+        lost_mean = torch.mean(torch.tensor(loss_list))
+        print("LossVar {0:.6f}, LostMean {1:.6f}".format(lost_var, lost_mean))
+    return (testing_acc / total).item()
 
 if __name__ == '__main__':
     # 0. hyper-parameters.
@@ -113,37 +138,46 @@ if __name__ == '__main__':
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
     train_dataset = datasets.MNIST(root=data_root, train=True, transform=transform, download=True)
     test_dataset = datasets.MNIST(root=data_root, train=False, transform=transform, download=True)
+    verify_dataset = datasets.MNIST(root=data_root, train=True, transform=transform, download=True)
 
     # 2. traverse through batchsize and epoch number.
     sgd_loss_list = []
+    sgd_variance_list = []
+    sgd_mean_list = []
     for batch_size in batch_size_list:
         for num_epochs in num_epochs_list:
             train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
             test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+            verify_loader = DataLoader(verify_dataset, batch_size=batch_size, shuffle=False)
             iteration_number = len(train_loader) * num_epochs / batch_size
             print("Batch Size: {}, Epoch Number: {}, Iteration Number: {}".format(batch_size, num_epochs, iteration_number))
             model = Network().to(device)
             # print(model)
             criterion = torch.nn.CrossEntropyLoss()
             optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-            sgd_loss_list.append(train(model,
-                optimizer,
-                criterion,
-                num_epochs,
-                device,
-                train_loader,
-                test_loader))
+            loss_list, variance_list, mean_list = train(
+                model, 
+                optimizer, 
+                criterion, 
+                num_epochs, 
+                device, 
+                train_loader, 
+                verify_loader, 
+                test_loader)
+            # sgd_loss_list.append(loss_list)
+            sgd_variance_list.append(variance_list)
+            sgd_mean_list.append(mean_list)
 
     # 4. compare the data.
     import matplotlib.pyplot as plt
 
     os.makedirs("./pic", exist_ok=True)
     fig, ax = plt.subplots()
-    for i, loss_list in enumerate(sgd_loss_list):
-        x_ax = list(range(len(loss_list)))
-        ax.plot(x_ax, loss_list, label="B: {}, E: {}".format(batch_size_list[i//len(num_epochs_list)], num_epochs_list[i%len(num_epochs_list)]))
-    ax.set_ylabel("train loss")
+    for i, mean_list in enumerate(sgd_mean_list):
+        x_ax = list(range(len(mean_list)))
+        ax.plot(x_ax, mean_list, label="B: {}, E: {}".format(batch_size_list[i//len(num_epochs_list)], num_epochs_list[i%len(num_epochs_list)]))
+    ax.set_ylabel("mean of loss")
     ax.set_xlabel("iteration")
     ax.legend(loc='upper right')
-    plt.savefig("./pic/hyper-parameters.png")
+    plt.savefig("./pic/hyper-parameters2.png")
     plt.close(fig)
