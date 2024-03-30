@@ -53,7 +53,8 @@ def train(model: nn.Module,
     for epoch_idx in range(num_epochs):
         model.train()
         running_acc = running_loss = total = 0
-        for inputs, labels in tqdm(train_loader):
+        #for inputs, labels in tqdm(train_loader):
+        for inputs, labels in train_loader:
 
             # prepare mini-batch data
             inputs, labels = inputs.to(device), labels.to(device)
@@ -77,7 +78,8 @@ def train(model: nn.Module,
             if total % (len(train_loader) // 16) == 10 and len(variance_list) < 20:
                 its = 0
                 varify_list = []
-                for inputs, labels in tqdm(verify_loader):
+                #for inputs, labels in tqdm(verify_loader):
+                for inputs, labels in verify_loader:    
                     inputs, labels = inputs.to(device), labels.to(device)
                     outputs = model(inputs)
                     loss = criterion(outputs, labels)
@@ -112,7 +114,8 @@ def test(model:nn.Module,
     testing_acc = total = 0
     loss_list = []
     with torch.no_grad():
-        for inputs, labels in tqdm(test_loader):
+        #for inputs, labels in tqdm(test_loader):
+        for inputs, labels in test_loader:
             inputs, labels = inputs.to(device), labels.to(device)
             outputs = model(inputs)
             loss = criterion(outputs, labels)

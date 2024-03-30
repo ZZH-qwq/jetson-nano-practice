@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms 
-from zzhmodel import MODELRESH, MODELRESW, YourModel
+from fyfmodel import MODELRESH, MODELRESW, YourModel
 import numpy as np
 from dataset import Cifar100Dataset, COLOR, DATARESH, DATARESW, N_CLASS
 from tqdm import tqdm

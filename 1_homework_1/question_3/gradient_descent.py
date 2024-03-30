@@ -38,7 +38,7 @@ class Nesterov(object):
             # param.data[:] = param.data - self.lr * param.grad
             # ##############################
             # TODO: Your code here!
-
+            
             # Nesterov updates
             param_m1.data[:] = param.data - self.lr * param.grad
             param.data[:] = param_m1.data + (self.counter-1)/(self.counter+2)*(param_m1.data-param_m2.data)

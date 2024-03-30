@@ -7,7 +7,7 @@ from tqdm import tqdm
 batch_size = 32
 learning_rate = 0.001
 num_epochs = 5
-device = torch.device("cpu:0")
+device = torch.device("cuda:0")
 
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
 train_dataset = datasets.MNIST(root='./data/mnist', train=True, transform=transform, download=True)
