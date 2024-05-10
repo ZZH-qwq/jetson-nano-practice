@@ -132,7 +132,8 @@ if __name__ == '__main__':
     # 0. hyper-parameters.
     batch_size_list = [8, 16, 32, 64, 128]
     # num_epochs_list = [1, 2, 4, 6, 8]
-    num_epochs_list = [1]
+    num_epochs_list = [1, 4]
+    batch_epoch_pairs = []
     learning_rate = 1e-3
     device = torch.device("cuda:0")
     data_root = './data/mnist'
@@ -149,6 +150,9 @@ if __name__ == '__main__':
     sgd_mean_list = []
     for batch_size in batch_size_list:
         for num_epochs in num_epochs_list:
+            if batch_size == 128 and num_epochs == 4:
+                continue
+            batch_epoch_pairs.append((batch_size, num_epochs))
             train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
             test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
             verify_loader = DataLoader(verify_dataset, batch_size=batch_size, shuffle=False)
@@ -178,9 +182,25 @@ if __name__ == '__main__':
     fig, ax = plt.subplots()
     for i, mean_list in enumerate(sgd_mean_list):
         x_ax = list(range(len(mean_list)))
-        ax.plot(x_ax, mean_list, label="B: {}, E: {}".format(batch_size_list[i//len(num_epochs_list)], num_epochs_list[i%len(num_epochs_list)]))
+        batch_size, num_epochs = batch_epoch_pairs[i]
+        ax.plot(x_ax, mean_list, label="B: {}, E: {}".format(batch_size, num_epochs))
     ax.set_ylabel("mean of loss")
     ax.set_xlabel("iteration")
     ax.legend(loc='upper right')
-    plt.savefig("./pic/hyper-parameters2.png")
+    plt.savefig("./pic/hyper-parameters_mean.png")
     plt.close(fig)
+
+
+    fig_var, ax_var = plt.subplots()
+    for i, variance_list in enumerate(sgd_variance_list):
+        x_ax_var = list(range(len(variance_list)))
+        batch_size, num_epochs = batch_epoch_pairs[i]
+        ax_var.plot(x_ax_var, variance_list, label="B: {}, E: {}".format(batch_size, num_epochs))
+    ax_var.set_ylabel("variance of loss")
+    ax_var.set_xlabel("iteration")
+    ax_var.legend(loc='upper right')
+    plt.savefig("./pic/hyper-parameters_variance.png")
+    plt.close(fig_var)
+
+
+
