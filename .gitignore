@@ -4,3 +4,9 @@ data/
 .vscode/
 
 __pycache__/
+
+2_homework_2/question_2/
+
+*.pth
+
+*.onnx
