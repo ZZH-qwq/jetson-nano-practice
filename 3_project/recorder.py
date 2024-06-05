@@ -1,5 +1,6 @@
 import sys
 import os
+import socket
 import pyaudio
 import wave
 import numpy as np
@@ -24,7 +25,7 @@ MIC_INDEX = 11
 def record_audio():
     with ignore_warning():
         audio = pyaudio.PyAudio()
-    
+
     # Start recording
     stream = audio.open(format=FORMAT, channels=CHANNELS, input_device_index=MIC_INDEX,
                         rate=RATE, input=True,
@@ -44,6 +45,7 @@ def record_audio():
 
     return b''.join(frames)
 
+
 def save_audio(frames, filename):
     with ignore_warning():
         audio = pyaudio.PyAudio()
@@ -54,44 +56,56 @@ def save_audio(frames, filename):
     waveFile.writeframes(frames)
     waveFile.close()
 
+
 def process_audio(input_filename, output_filename, target_rate=16000):
     # Load the audio file
     data, rate = sf.read(input_filename, dtype='int16')
-    
+
     # Resample the audio data to the target rate
-    resampled_data = librosa.resample(data.astype(np.float32), orig_sr=rate, target_sr=target_rate)
-    
+    resampled_data = librosa.resample(data.astype(
+        np.float32), orig_sr=rate, target_sr=target_rate)
+
     # Apply dynamic range compression
     compressed_data = librosa.effects.preemphasis(resampled_data, coef=0.97)
 
     # Apply noise reduce
-    compressed_data = nr.reduce_noise(y=compressed_data, sr=target_rate)
-    
+    # compressed_data = nr.reduce_noise(y=compressed_data, sr=target_rate)
+
     # Normalize the audio to maximize peak value
     peak = np.max(np.abs(compressed_data))
     if peak > 0:
-        compressed_data = compressed_data * (0.99 / peak)  # Using 0.99 to avoid clipping
-    
+        compressed_data = compressed_data * (0.99 / peak)
+
     # Convert back to int16 range
     compressed_data = np.int16(compressed_data * 32767)
-    
+
     # Save the resampled, filtered, and normalized audio data to a new file
     sf.write(output_filename, compressed_data, target_rate)
 
 
 def main():
+    host = '127.0.0.1'
+    port = 65432
+
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.connect((host, port))
+
+    print(f"Connected to server {host}:{port}")
+
+    count = 0
+
     while True:
         input("Press Enter to start recording...")
-        
+
         # Record audio
         frames = record_audio()
         print("Audio recorded")
-        
+
         # Save the recorded audio
         original_filename = "recording.wav"
         save_audio(frames, original_filename)
         print(f"Original audio saved as {original_filename}")
-        
+
         # Resample the audio and save with a new filename
         resampled_filename = "resampled_recording.flac"
         process_audio(original_filename, resampled_filename)
@@ -99,10 +113,20 @@ def main():
 
         # Predict the words of the audio
         print("Predicting words...")
-        with hide_print():
-            pred_words=get_pred(resampled_filename)
+        with hide_print(count != 0):
+            pred_words = get_pred(resampled_filename)
         print(f"Predicted words: {pred_words}")
+
+        message = f"You: {pred_words}"
+        client_socket.sendall(message.encode())
+
+        data = client_socket.recv(1024).decode()
+        if not data:
+            break
+        print(f"gpt: {data}")
+
+        count += 1
+
 
 if __name__ == "__main__":
     main()
-

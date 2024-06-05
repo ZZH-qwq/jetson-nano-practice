@@ -1,5 +1,4 @@
 # coding=utf-8
-# Contact: bingquanxia@qq.com
 from dataloader import get_dataloader
 
 
@@ -278,9 +277,9 @@ def get_pred(flac_path):
 
     # flac_path="recorder/resampled_recording.flac"
     feature_extractor_type = "resnet"
-    ckpt_path = "epoch_012.pth"
+    ckpt_path = "epoch_050.pth"
     t_ph = "./spm/librispeech-500/1000_bpe.model"
-    
+
     audio_paths = [flac_path]
     transcripts = ["/"]  # dummy
     wav_lengths = [get_flac_length(flac_path)]  # dummy
@@ -329,8 +328,8 @@ def get_pred(flac_path):
     tot_err = 0
     tot_words = 0
     print(f"index  |  ground truth  |  prediction  |  WER (Word Error Rate)", flush=True)
-    
-    pred_res=""
+
+    pred_res = ""
 
     for i, (fbank_feat, feat_lens, ys_in, ys_out) in enumerate(data_loader):
         assert fbank_feat.size(0) == 1, "Only support batch size 1."
@@ -352,7 +351,7 @@ def get_pred(flac_path):
         else:
             raise ValueError(f"Invalid search strategy: {search_strategy}")
         pred_tokens = pred_tokens[0]
-        
+
         pred = tokenizer.detokenize(pred_tokens)
         gt = transcripts[i]
 
@@ -363,13 +362,14 @@ def get_pred(flac_path):
 
         wer = n_err / n_wrd
         print(f"{i:05d}  |  {gt}  |  {pred}  |  {wer:.4f}", flush=True)
-        
-        pre_res=pred
+
+        pre_res = pred
 
     wer = tot_err / tot_words
     print(f"WER: {wer:.4f}", flush=True)
-    
+
     return pre_res
+
 
 if __name__ == "__main__":
     get_pred("hhh")

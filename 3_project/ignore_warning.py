@@ -1,4 +1,7 @@
-import time, os, sys, contextlib
+import os
+import sys
+import contextlib
+
 
 @contextlib.contextmanager
 def ignore_warning():
@@ -13,11 +16,18 @@ def ignore_warning():
         os.dup2(old_stderr, 2)
         os.close(old_stderr)
 
+
 class hide_print:
+    def __init__(self, hide=True):
+        self.hide = hide
+        self._original_stdout = None
+
     def __enter__(self):
         self._original_stdout = sys.stdout
-        sys.stdout = open(os.devnull, 'w')
+        if (self.hide):
+            sys.stdout = open(os.devnull, 'w')
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        sys.stdout.close()
-        sys.stdout = self._original_stdout
+        if (self.hide):
+            sys.stdout.close()
+            sys.stdout = self._original_stdout
