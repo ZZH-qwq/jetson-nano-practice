@@ -1,14 +1,10 @@
-import sys
-import os
 import socket
 import pyaudio
 import wave
 import numpy as np
 import soundfile as sf
 import librosa
-import noisereduce as nr
 from ASR_trans import get_pred
-from scipy.signal import resample
 from ignore_warning import ignore_warning, hide_print
 import warnings
 warnings.filterwarnings("ignore")
@@ -67,9 +63,6 @@ def process_audio(input_filename, output_filename, target_rate=16000):
 
     # Apply dynamic range compression
     compressed_data = librosa.effects.preemphasis(resampled_data, coef=0.97)
-
-    # Apply noise reduce
-    # compressed_data = nr.reduce_noise(y=compressed_data, sr=target_rate)
 
     # Normalize the audio to maximize peak value
     peak = np.max(np.abs(compressed_data))

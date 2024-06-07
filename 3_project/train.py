@@ -1,5 +1,5 @@
 # coding=utf-8
-# Contact: bingquanxia@qq.com
+# Ref: https://github.com/xiabingquan/Automatic-Speech-Recognition-from-Scratch
 
 import os
 import sys

@@ -1,5 +1,4 @@
 # coding=utf-8
-# Contact: bingquanxia@qq.com
 
 import random
 from typing import List, Tuple, Union
